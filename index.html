@@ -241,6 +241,13 @@
   img.mosc { position:fixed; z-index:60; pointer-events:none; object-fit:contain; } #ades #adesTit img.scr { width:min(260px, 80%); }
   #win .card { position:relative; } #win .festoni { display:flex; justify-content:space-between; margin:-6px -8px -18px; pointer-events:none; } #win .festoni img { width:49%; height:auto; } #win .festoni img:last-child { transform:scaleX(-1); }
   /* Igor 21/11 01:12: nelle Impostazioni le icone dipinte erano enormi: stessa misura delle altre */ .riga .ic img { width:30px; height:30px; object-fit:contain; display:block; }
+  /* Igor 21/11 01:19: sul telefono l'ultimo riquadro in basso finiva sotto la barra del telefono. Tutti i cartellini stanno sopra la zona sicura, con un po' di aria */
+  html, body { height:100%; height:100dvh; } .veil { padding-top:calc(14px + env(safe-area-inset-top, 0px)); padding-bottom:calc(26px + env(safe-area-inset-bottom, 0px)); } .veil > .card { max-height:100%; overflow-y:auto; }
+  #win.veil { padding-top:calc(112px + env(safe-area-inset-top, 0px)); padding-bottom:calc(30px + env(safe-area-inset-bottom, 0px)); } #imp .card { max-height:100%; }
+  /* cartellino di vittoria: i tasti restano sempre in vista; se lo schermo è basso si rimpicciolisce tutto il resto */
+  #win .card { display:flex; flex-direction:column; overflow:hidden; } #win #winStats { overflow-y:auto; min-height:0; flex:1 1 auto; } #win .card > .row { flex:none; }
+  @media (max-height:780px) { #win.veil { padding-top:calc(104px + env(safe-area-inset-top, 0px)); padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); } #win #winStats img.big { max-height:84px; } #winStars img.fio { width:48px; height:48px; } #win #winWord img.scr { width:min(220px, 70%); } #win img.pp1i { width:min(220px, 66%); } #win h2 { font-size:22px; margin:0; } #win .festoni { margin-bottom:-24px; } #winStats { font-size:16px; line-height:1.2; } }
+  @media (max-height:690px) { #win #winStats img.big { max-height:64px; } #winStars img.fio { width:40px; height:40px; } #win #winWord img.scr { width:min(180px, 58%); } #win img.pp1i { width:min(190px, 58%); } #win .festoni img { width:40%; } }
   b.voto { display:inline-block; margin-top:6px; padding:2px 12px; border:2.5px solid #B8221A; border-radius:8px; color:#B8221A; font-family:Chewy,'Baloo 2',sans-serif; font-size:21px; font-weight:400; transform:rotate(-3deg); background:#FFFDF4; }   /* il voto del maestro, a penna rossa */
   :root { --z:1; } .card, #note { zoom:var(--z); }
   html.notte, html.notte body { background:#0B0C10; } html.notte #wrap { filter:brightness(.68) sepia(.22) saturate(.9); }

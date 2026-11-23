@@ -1200,7 +1200,7 @@ function note(t, bad, ms) { const n = $('note'); n.textContent = t; n.className 
     if (tf && S.dir >= 0 && tf.k === 'stretta' && d !== S.dir) return 'Qui non puoi girare';
     if (tf && S.dir >= 0 && tf.k === 'curva' && d === S.dir) return 'Qui devi girare';
     if (lv.maxTurns >= 0 && S.dir >= 0 && d !== S.dir && S.turns >= lv.maxTurns) return 'Hai finito le curve';
-    if (n === lv.exit && lv.exact > 0 && S.t + 1 !== lv.exact && !S.stars) { const k = S.t + 1, poco = k < lv.exact; passoFinto = { a: S.pos, b: n, k, t0: performance.now() }; return 'Sbagliato! Uscita al passo ' + k + ', ne servono ' + lv.exact + ': ' + (poco ? 'strada più lunga.' : 'strada più corta.'); }   /* Igor 23/11: l'ultimo passo si fa vedere, poi «sbagliato» e il perché */
+    if (n === lv.exit && lv.exact > 0 && S.t + 1 !== lv.exact && !S.stars) { const k = S.t + 1, poco = k < lv.exact; passoFinto = { a: S.pos, b: n, k, t0: performance.now() }; return 'Sbagliato! Servono ' + lv.exact + ' passi e non ' + k + '.'; }   /* Igor 23/11: l'ultimo passo si fa vedere, poi «sbagliato» e il perché */
     if (tn && tn.k === 'numero' && !S.got[n] && tn.n !== S.next) return PAGES[pi].parola ? (opz.difficile ? 'Non è la lettera giusta' : 'Prima la lettera ' + PAGES[pi].parola[S.next - 1]) : 'Prima il numero ' + S.next;
     if (tn && tn.k === 'fossa' && !S.got[n]) return 'C\'è la fossa: spingici dentro l\'astuccio';
     if (tn && tn.k === 'cancello' && tn.peso !== undefined && !S.blk[tn.peso]) return 'Il cancello si apre con l\'astuccio sul bottone grigio';

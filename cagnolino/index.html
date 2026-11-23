@@ -1351,8 +1351,8 @@ function note(t, bad, ms) { const n = $('note'); n.textContent = t; n.className 
     const m = ks.reduce((a, k) => a + Math.min(3, prog[k]), 0) / ks.length;
     return ks.every(k => prog[k] === 4) ? ['E-eccezionale! Il non plus ultra!', 'maestro-bravo'] : m >= 2.75 ? ['O-ottimo! Complimenti, Giancarlo!', 'maestro-bravo'] : m >= 2.25 ? ['B-buono! Un quaderno che funziona.', 'maestro-bravo'] : m >= 1.75 ? ['Discreto. Si può fare di meglio.', 'maestro'] : ['Sufficiente. Si può fare di meglio.', 'maestro-dito-alzato'];
   }
-  /* Igor 23/11: UN livello bonus a fine mese, la grande festa a nastri. Si apre solo con almeno il 70% dei fogli del mese arcobaleno; se no resta grigio, «Chiuso per ferie». */
-  const BONUS_SOGLIA = 0.7, arcMese = ks => ks.filter(k => prog[k] === 4).length, bonusAperto = ks => arcMese(ks) >= Math.ceil(ks.length * BONUS_SOGLIA);
+  /* Igor 23/11: UN livello bonus a fine mese, la grande festa a nastri. Si apre solo con almeno il 75% dei fogli del mese arcobaleno; se no resta grigio, «Chiuso per ferie». */
+  const BONUS_SOGLIA = 0.75, arcMese = ks => ks.filter(k => prog[k] === 4).length, bonusAperto = ks => arcMese(ks) >= Math.ceil(ks.length * BONUS_SOGLIA);
   function bonusTile(w, ks) { const a = arcMese(ks), serve = Math.ceil(ks.length * BONUS_SOGLIA);
     return bonusAperto(ks) ? '<button type="button" class="bonusB aperto" data-bonus="' + w + '"><b>Livello bonus</b><span>La grande festa di ' + MESI[w - 1][0] + '! Tocca per entrare.</span></button>'
       : '<button type="button" class="bonusB chiuso" data-bonus="' + w + '"><b>Chiuso per ferie</b><span>Livello bonus: arcobalena ' + serve + ' fogli su ' + ks.length + ' per aprirlo. Ne hai ' + a + '.</span></button>'; }

@@ -408,10 +408,10 @@ function shortest(lv) { const d = dist(lv, lv.exit), p = [lv.start]; if (d[lv.st
 
 // ---------- stato e mossa ----------
 function init(lv) {
-  const S = { pos: lv.start, t: 0, path: [lv.start], head: 0, used: new Uint8Array(lv.N), keys: new Uint8Array(4), pen: 0, tog: 0, blk: new Uint8Array(lv.N), got: new Uint8Array(lv.N), lit: new Int16Array(lv.fuses.length).fill(-1), stars: lv.stars, flags: 0, dir: -1, turns: 0, next: 1, mina: 0, bian: 0, sum: 0, lastCol: -1, sock: -1, tmr: -999, tw: lv.twin === undefined ? -1 : lv.twin, run: 0, lastTurn: 0, sameT: 0, lefts: 0, farf: 0, ev: 0, spCol: -1, spLeft: 0, zaino: 0, rc: lv.bordi ? new Int8Array(lv.W + lv.H) : null };
+  const S = { pos: lv.start, t: 0, path: [lv.start], head: 0, used: new Uint8Array(lv.N), keys: new Uint8Array(4), pen: 0, tog: 0, blk: new Uint8Array(lv.N), got: new Uint8Array(lv.N), lit: new Int16Array(lv.fuses.length).fill(-1), stars: lv.stars, flags: 0, dir: -1, turns: 0, next: 1, mina: 0, bian: 0, sum: 0, lastCol: -1, sock: -1, tmr: -999, tw: lv.twin === undefined ? -1 : lv.twin, run: 0, lastTurn: 0, sameT: 0, lefts: 0, farf: 0, ev: 0, spCol: -1, spLeft: 0, zaino: 0, forb: 0, rc: lv.bordi ? new Int8Array(lv.W + lv.H) : null };
   S.used[lv.start] = 1; if (S.rc) { S.rc[lv.start % lv.W]++; S.rc[lv.W + ((lv.start / lv.W) | 0)]++; } lv.blocks.forEach(c => { S.blk[c] = 1; }); return S;
 }
-const copy = S => ({ pos: S.pos, t: S.t, path: S.path.slice(), head: S.head, used: S.used.slice(), keys: S.keys.slice(), pen: S.pen, tog: S.tog, blk: S.blk.slice(), got: S.got.slice(), lit: S.lit.slice(), stars: S.stars, flags: S.flags, dir: S.dir, turns: S.turns, next: S.next, mina: S.mina, bian: S.bian, sum: S.sum, lastCol: S.lastCol, sock: S.sock, tmr: S.tmr, tw: S.tw, run: S.run, lastTurn: S.lastTurn, sameT: S.sameT, lefts: S.lefts, farf: S.farf, ev: S.ev, spCol: S.spCol, spLeft: S.spLeft, zaino: S.zaino, rc: S.rc ? S.rc.slice() : null });
+const copy = S => ({ pos: S.pos, t: S.t, path: S.path.slice(), head: S.head, used: S.used.slice(), keys: S.keys.slice(), pen: S.pen, tog: S.tog, blk: S.blk.slice(), got: S.got.slice(), lit: S.lit.slice(), stars: S.stars, flags: S.flags, dir: S.dir, turns: S.turns, next: S.next, mina: S.mina, bian: S.bian, sum: S.sum, lastCol: S.lastCol, sock: S.sock, tmr: S.tmr, tw: S.tw, run: S.run, lastTurn: S.lastTurn, sameT: S.sameT, lefts: S.lefts, farf: S.farf, ev: S.ev, spCol: S.spCol, spLeft: S.spLeft, zaino: S.zaino, forb: S.forb, taglio: S.taglio, rc: S.rc ? S.rc.slice() : null });
 function monAt(m, t) { const L = m.route.length; if (m.cyc) return m.route[t % L]; if (m.hop) return m.route[((t / 3) | 0) % L]; const p = 2 * (L - 1), k = t % p; return m.route[k < L ? k : p - k]; } // avanti e indietro; in tondo (mosca); a salti ogni tre passi (timbro)
 function passable(lv, S, c, d) {
   if (lv.open[c] & BIT[d]) return true;
@@ -442,7 +442,7 @@ function step(lv, S, d, slide) {
   const from = S.pos, tf = lv.type[from];
   if (!slide && tf && tf.k === 'freccia' && tf.d !== d) return null;         // da una freccia si esce solo nel suo verso
   if (!slide && tf && S.dir >= 0) { if (tf.k === 'stretta' && d !== S.dir) return null; if (tf.k === 'curva' && d === S.dir) return null; if (tf.k === 'girandola' && d !== (S.dir + 1) % 4) return null; if (tf.k === 'ponte' && d !== S.dir) return null; } // strettoia: solo dritti; curva obbligata: lì si gira
-  if (!passable(lv, S, from, d)) return null;
+  let taglia = false; if (!passable(lv, S, from, d)) { if (!(S.forb > 0) || lv.nb(from, d) < 0) return null; taglia = true; }   // FORBICI (secondo anno, gennaio 1982): con le forbici si taglia UN muro, una volta sola
   const turn = S.dir >= 0 && d !== S.dir ? 1 : 0; if (lv.maxTurns !== undefined && lv.maxTurns >= 0 && S.turns + turn > lv.maxTurns) return null;   // poche curve
   if (lv.vento !== undefined && d === lv.vento) return null;                                                             // vento: un verso è vietato per tutto il foglio
   if (lv.maxRun && S.dir === d && S.run + 1 > lv.maxRun) return null;                                                 // righello: mai più di N quadretti dritti di fila
@@ -461,7 +461,7 @@ function step(lv, S, d, slide) {
   if (S.ev && !(tn0 && tn0.k === 'evid' && !S.got[n])) return null;            // evidenziatore: cominciata la riga gialla, la finisci senza staccare
   if (n === lv.exit && lv.graffe) for (const [ga, gb] of lv.graffe) if (lv.type[ga] && lv.type[ga].k === 'graffa' && !S.got[ga] !== !S.got[gb]) return null;   // graffetta: o tutti e due i quadretti agganciati, o nessuno
   for (const m of lv.monsters) { const a = monAt(m, S.t), b = monAt(m, S.t + 1); if (b === n || (a === n && b === from)) return null; }
-  const tn = lv.type[n], T = copy(S);
+  const tn = lv.type[n], T = copy(S); if (taglia) { T.forb--; T.taglio = (T.taglio || []).concat([[from, d]]); }
   if (S.blk[n]) { // cosa da spingere
     if (!passable(lv, S, n, d)) return null; const n2 = lv.nb(n, d);
     const t2 = n2 >= 0 ? lv.type[n2] : null, okType = !t2 || t2.k === 'peso' || (t2.k === 'fossa' && !S.got[n2]);
@@ -474,6 +474,7 @@ function step(lv, S, d, slide) {
     else if (tn.k === 'cancello') { if (tn.peso !== undefined) { if (!T.blk[tn.peso]) return null; T.flags |= F.peso; } else if (!(tn.open ^ ((S.tog >> tn.grp) & 1))) return null; }
     else if (tn.k === 'numero') { if (!S.got[n]) { if (tn.n !== S.next) return null; T.got[n] = 1; T.next++; T.stars--; T.flags |= F.numeri; } }
     else if (tn.k === 'fossa') { if (!S.got[n]) return null; T.flags |= F.fossa; }
+    else if (tn.k === 'forbici') { if (!S.got[n]) { T.got[n] = 1; T.forb++; } }
     else if (tn.k === 'strappo' || tn.k === 'bidello' || tn.k === 'gatto' || tn.k === 'topo' || tn.k === 'cane') return null;
     else if (tn.k === 'fiotardi') { if (!S.got[n]) { if (t1 < tn.t) return null; T.got[n] = 1; T.stars--; } }                    // bocciolo: sboccia al passo scritto, prima non si passa
     else if (tn.k === 'portapari') { if ((S.turns + turn) % 2 !== tn.p) return null; }                                      // porta delle curve: pari o dispari
@@ -571,6 +572,11 @@ function lineaACaso(lv, R) { let best = null; for (let t = 0; t < 10; t++) { con
 function taglio(lv, k) { const D = dist(lv, lv.start); for (let c = 0; c < lv.N; c++) for (let d = 0; d < 4; d++) if (lv.open[c] & BIT[d]) { const n = lv.nb(c, d); if (D[c] === k - 1 && D[n] === k) { lv.open[c] &= ~BIT[d]; lv.open[n] &= ~OPP[d]; } } }
 const PUT = {
   niente: () => {},
+  forbici: (lv, R, q) => {   // si chiude con un muro la strada giusta (l'uscita non si raggiunge più) e le forbici stanno in un ramo cieco prima del muro
+    for (let tent = 0; tent < 30; tent++) { const p = shortest(lv); if (p.length < 6) return; const i = 2 + Math.floor(R() * (p.length - 4)), a = p[i], b = p[i + 1]; let d = -1; for (let k = 0; k < 4; k++) if (lv.nb(a, k) === b) d = k; if (d < 0) continue;
+      lv.open[a] &= ~BIT[d]; lv.open[b] &= ~OPP[d]; if (dist(lv, lv.start)[lv.exit] >= 0) { lv.open[a] |= BIT[d]; lv.open[b] |= OPP[d]; continue; }
+      const ds = dist(lv, lv.start), giu = free(lv).filter(c => ds[c] >= 2 && !p.includes(c)); const fc = pick(giu.length ? giu : free(lv).filter(c => ds[c] >= 1), R); if (fc < 0) { lv.open[a] |= BIT[d]; lv.open[b] |= OPP[d]; return; }
+      lv.type[fc] = { k: 'forbici' }; return; } },
   chiavi: (lv, R, q) => { const n = q || 1 + (R() < 0.5 ? 1 : 0); for (let id = 0; id < n; id++) { const dc = pick(onPath(lv), R); if (dc < 0) return; lv.type[dc] = { k: 'porta', id }; const kc = pick(free(lv), R); if (kc >= 0) lv.type[kc] = { k: 'chiave', id }; } },
   pennarelli: (lv, R, q) => { for (const col of [1, 2].slice(0, q || 2)) { const dc = pick(onPath(lv), R); if (dc < 0) return; lv.type[dc] = { k: 'portacol', col }; const pc = pick(free(lv), R); if (pc >= 0) lv.type[pc] = { k: 'pennarello', col }; } },
   frecce: (lv, R, q) => { for (let i = 0; i < (q || 5); i++) { const c = pick(free(lv), R); if (c < 0) return; const ds = [0, 1, 2, 3].filter(d => lv.open[c] & BIT[d]); lv.type[c] = { k: 'freccia', d: pick(ds, R) }; } },
@@ -730,7 +736,7 @@ function build(els, seed, W, H, loops) { const R = rng(seed * 7919 + 13), lv = m
 // ---------- disegno a caratteri, con le coordinate ----------
 function draw(lv, sol) {
   const sym = c => { const t = lv.type[c]; if (c === lv.start) return 'S'; if (c === lv.exit) return 'U'; if (lv.blocks.includes(c)) return 'o'; for (const m of lv.monsters) if (m.route[0] === c) return 'M'; for (const m of lv.monsters) if (m.route.includes(c)) return 'm';
-    if (!t) return sol && sol.includes(c) ? '.' : ' '; return { porta: 'ABCD'[t.id], chiave: 'abcd'[t.id], portacol: ' RV'[t.col], pennarello: ' rv'[t.col], freccia: ARW[t.d], buco: '12'[t.id], olio: '~', interruttore: '!', cancello: t.open ? ':' : '#', stella: '*', miccia: 'f' }[t.k]; };
+    if (!t) return sol && sol.includes(c) ? '.' : ' '; return { porta: 'ABCD'[t.id], chiave: 'abcd'[t.id], forbici: 'x', portacol: ' RV'[t.col], pennarello: ' rv'[t.col], freccia: ARW[t.d], buco: '12'[t.id], olio: '~', interruttore: '!', cancello: t.open ? ':' : '#', stella: '*', miccia: 'f' }[t.k]; };
   let s = '    ' + Array.from({ length: lv.W }, (_, x) => String.fromCharCode(65 + x)).join('   ') + '\n';
   for (let y = 0; y < lv.H; y++) {
     let a = '  ', b = String(y + 1).padStart(2) + '';
@@ -826,10 +832,11 @@ function difficoltaAperta(lv, s) {
   const base = e => e.split(':')[0].replace(/2$/, ''), kinds = P => P.els.map(base).map(k => k === 'numeri' && P.parola ? 'parola' : k === 'stelle' && P.coord ? 'coord' : k).filter((e, i, a) => a.indexOf(e) === i);
   const firstOf = P => PAGES.findIndex(x => x.q === P.q), lastOf = P => PAGES.length - 1 - PAGES.slice().reverse().findIndex(x => x.q === P.q);
   const vacanze = P => (P.q === 10 && P.day > 15) || P.q > 10, where = (P, i) => P.q ? (vacanze(P) ? 'Compiti · ' + P.day + ' ' + MESI[P.q - 1][0] : Mese(P.q) + (P.compito ? ' · compito in classe' : P.dom ? ' · domenica ' + P.day : ' · giorno ' + P.day)) : 'Palestra · foglio ' + (i - firstOf(P) + 1);
-  const NAME = { niente: 'Solo la linea', evidenziatore: 'Evidenziatore', spilli: 'Spilli colorati', graffette: 'Graffette', zaino: 'Zaino', cane: 'Cagnolino', pericoli: 'Guai', calamita: 'Calamita', battaglia: 'Battaglia navale', coord: 'Battaglia navale', appassisce: 'Fiorellini che appassiscono', sboccia: 'Boccioli', curveesatte: 'Curve contate', farfalla: 'Farfalle', righello: 'Righello', separa: 'Gatto e topo', girandola: 'Girandola', nastro: 'Nastro', scivolo: 'Buco verde', ponte: 'Ponte', finestre: 'Finestrelle', parola: 'Parola', stelle: 'Fiorellini', mostro: 'Mostro', miccia: 'Dinamite', buchi: 'Buchi', olio: 'Olio', frecce: 'Frecce', chiavi: 'Chiavi', pennarelli: 'Pennarelli', interruttori: 'Bottone che scambia', apri: 'Bottone', blocchi: 'Astucci', numeri: 'Numeri', esatti: 'Passi contati', pochecurve: 'Poche curve', pallina: 'Pallina', strette: 'Vietato girare', curve: 'Obbligo di girare', peso: 'Bottone a peso', fossa: 'Fossa', molle: 'Molla', alterni: 'Due colori', calzini: 'Calzini', somma: 'Somma', merenda: 'Mela', riempi: 'Foglio strappato', sbarra: 'Sbarra', timbro: 'Timbro', mosca: 'Mosca', bidello: 'Bidello', orario: 'Porta a orario', timer: 'Bottone a tempo', conto: 'Porta dei fiorellini', temperino: 'Temperino', domanda: 'Portone' };
+  const NAME = { forbici: 'Forbici', niente: 'Solo la linea', evidenziatore: 'Evidenziatore', spilli: 'Spilli colorati', graffette: 'Graffette', zaino: 'Zaino', cane: 'Cagnolino', pericoli: 'Guai', calamita: 'Calamita', battaglia: 'Battaglia navale', coord: 'Battaglia navale', appassisce: 'Fiorellini che appassiscono', sboccia: 'Boccioli', curveesatte: 'Curve contate', farfalla: 'Farfalle', righello: 'Righello', separa: 'Gatto e topo', girandola: 'Girandola', nastro: 'Nastro', scivolo: 'Buco verde', ponte: 'Ponte', finestre: 'Finestrelle', parola: 'Parola', stelle: 'Fiorellini', mostro: 'Mostro', miccia: 'Dinamite', buchi: 'Buchi', olio: 'Olio', frecce: 'Frecce', chiavi: 'Chiavi', pennarelli: 'Pennarelli', interruttori: 'Bottone che scambia', apri: 'Bottone', blocchi: 'Astucci', numeri: 'Numeri', esatti: 'Passi contati', pochecurve: 'Poche curve', pallina: 'Pallina', strette: 'Vietato girare', curve: 'Obbligo di girare', peso: 'Bottone a peso', fossa: 'Fossa', molle: 'Molla', alterni: 'Due colori', calzini: 'Calzini', somma: 'Somma', merenda: 'Mela', riempi: 'Foglio strappato', sbarra: 'Sbarra', timbro: 'Timbro', mosca: 'Mosca', bidello: 'Bidello', orario: 'Porta a orario', timer: 'Bottone a tempo', conto: 'Porta dei fiorellini', temperino: 'Temperino', domanda: 'Portone' };
   const label = P => P.nastri ? 'Super premio a nastri' : P.parti ? P.parti.length + ' labirinti collegati' : kinds(P).map(e => NAME[e]).join(' + ');
   const KEYCOL = ['#E2B93B', '#35B0E0'], PENCOL = ['', '#D8352A', '#2E9E5B'], PENNAME = ['', 'rosso', 'verde'];
   const RULE = { // istruzioni: chiare e più corte possibile
+    forbici: 'Prendi le forbici: poi puoi tagliare UN muro, uno solo. Vai contro il muro e lo tagli. Scegli bene quale!',
     base: 'Disegna una linea fino all\'uscita.',
     base2: 'Dove c\'è già la linea non puoi passare.',
     base3: 'Torna indietro col dito: la linea si cancella e lì puoi ripassare.',
@@ -882,7 +889,7 @@ function difficoltaAperta(lv, s) {
     parola: 'Tocca le lettere in ordine: formano una parola. Poi esci. La vuoi più difficile? Modalità Cervellone, nelle Impostazioni.'
   };
   // Igor (19/11, 19:11): OGNI foglio dice cosa fare, in una riga per elemento, anche quando gli elementi sono già noti
-  const FAI = { stelle: 'Prendi tutti i fiorellini.', mostro: 'Non toccare il mostro.', miccia: 'Accendi la dinamite: il muro rosso salta.', buchi: 'Un buco ti porta all\'altro dello stesso colore.', olio: 'Sull\'olio vai dritto.', frecce: 'Dalla freccia esci nel suo verso.',
+  const FAI = { forbici: 'Prendi le forbici e taglia il muro giusto.', stelle: 'Prendi tutti i fiorellini.', mostro: 'Non toccare il mostro.', miccia: 'Accendi la dinamite: il muro rosso salta.', buchi: 'Un buco ti porta all\'altro dello stesso colore.', olio: 'Sull\'olio vai dritto.', frecce: 'Dalla freccia esci nel suo verso.',
     chiavi: 'Prendi la chiave, poi apri la porta.', pennarelli: 'Apri la porta colorata col pennarello giusto.', interruttori: 'Il bottone scambia i cancelli.', apri: 'Apri il cancello col bottone rosso.', blocchi: 'Spingi l\'astuccio.',
     numeri: 'Tocca i numeri in ordine.', esatti: 'Esci col numero di passi della nuvoletta.', pochecurve: 'Fai poche curve: in alto leggi quante te ne restano.', pallina: 'Non toccare la pallina.', strette: 'Sul cartello rosso vai dritto.', curve: 'Sul cartello blu gira.',
     peso: 'Metti l\'astuccio sul bottone grigio.', fossa: 'Spingi l\'astuccio nella fossa.', molle: 'La molla ti fa saltare un quadretto.', alterni: 'Prendi i fiorellini alternando i colori.', calzini: 'Prendi i calzini a coppie uguali.',
@@ -1471,7 +1478,7 @@ function parlaVia(subito) { const p = parla; if (!p) return; parla = null; clear
 document.addEventListener('pointerdown', () => { if (parla) parlaVia(); }, true);
 function scritta(txt, img, ms, faccia) { if (faccia && img && SPR[img]) return matitaParla(img, faccia, ms); if (opz.calmo) return; const r = cv.getBoundingClientRect(), el = document.createElement(img && SPR[img] ? 'img' : 'div'); el.className = 'scrittaPop'; if (img && SPR[img]) el.src = U(img); else el.textContent = txt; el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.top + r.height * 0.4) + 'px'; document.body.appendChild(el); if (ms) el.style.animationDuration = ms + 'ms'; setTimeout(() => el.remove(), ms || 1400); }
   const ICONA_FIO = t => !t ? 'stellina' : t.k === 'stella' ? 'fiore' : t.k === 'spillo' ? 'spillo-rosso' : t.k === 'evid' ? 'evidenziatore' : 'stellina';
-  function bollaVedi() { const S = top(), b = $('bolla'); let t = null; if (lv.maxTurns >= 0) t = ['Curve', S.turns, lv.maxTurns, S.turns >= lv.maxTurns]; else if (lv.exactTurns >= 0) t = ['Curve', S.turns, lv.exactTurns, S.turns > lv.exactTurns]; else if (lv.sum > 0) t = ['Somma', S.sum, lv.sum, S.sum > lv.sum]; else if (lv.punta) t = ['Punta', Math.max(0, lv.punta - S.mina), lv.punta, lv.punta - S.mina <= 2]; else if (lv.exact > 0 && !lv.riempi) t = ['Passi', S.t, lv.exact, S.t > lv.exact]; else if (lv.coord) t = ['Passa per', fioCells.slice().sort((a, b) => a % lv.W - b % lv.W || a - b).map(c => '<span class="cas' + (S.got[c] ? ' fatta' : '') + '">' + nomeCasa(c) + '</span>').join(' '), '', false, 1]; else if (nFio) t = [fioNome, fioCells.filter(c => S.got[c]).length, nFio, false];
+  function bollaVedi() { const S = top(), b = $('bolla'); let t = null; if (lv.maxTurns >= 0) t = ['Curve', S.turns, lv.maxTurns, S.turns >= lv.maxTurns]; else if (lv.exactTurns >= 0) t = ['Curve', S.turns, lv.exactTurns, S.turns > lv.exactTurns]; else if (lv.sum > 0) t = ['Somma', S.sum, lv.sum, S.sum > lv.sum]; else if (lv.punta) t = ['Punta', Math.max(0, lv.punta - S.mina), lv.punta, lv.punta - S.mina <= 2]; else if (lv.exact > 0 && !lv.riempi) t = ['Passi', S.t, lv.exact, S.t > lv.exact]; else if (lv.coord) t = ['Passa per', fioCells.slice().sort((a, b) => a % lv.W - b % lv.W || a - b).map(c => '<span class="cas' + (S.got[c] ? ' fatta' : '') + '">' + nomeCasa(c) + '</span>').join(' '), '', false, 1]; else if (nFio) t = [fioNome, fioCells.filter(c => S.got[c]).length, nFio, false]; else if (lv.type.some(x => x && x.k === 'forbici')) t = ['Tagli', S.taglio ? S.taglio.length : 0, lv.type.filter(x => x && x.k === 'forbici').length, false];   /* forbici: quanti muri hai tagliato */
     if (!t || fest) { b.hidden = true; return; } b.hidden = false; if (!b.dataset.img) { b.dataset.img = 1; b.style.borderImage = 'url(' + U('bolla-contatore') + ') 0 140 fill / 0 40px / 0 stretch'; b.classList.add('dipinta'); } const r = cv.getBoundingClientRect(); b.style.top = (r.top + 4) + 'px'; $('bollaL').textContent = t[0]; if (t[4]) $('bollaN').innerHTML = t[1]; else $('bollaN').textContent = t[1]; $('bollaD').textContent = t[4] ? '' : ' di ' + t[2]; b.classList.toggle('pieno', !!t[3]); }
   function volaA(x, y, html, dest, poi) { if (opz.calmo) { if (poi) poi(); return; } const r = cv.getBoundingClientRect(), d = dest.getBoundingClientRect(), el = document.createElement('div'); el.className = 'vola'; el.innerHTML = html; document.body.appendChild(el);
     const x0 = r.left + x, y0 = r.top + y, x1 = d.left + d.width / 2, y1 = d.top + d.height / 2; el.style.left = x0 + 'px'; el.style.top = y0 + 'px';
@@ -1510,6 +1517,10 @@ function scritta(txt, img, ms, faccia) { if (faccia && img && SPR[img]) return m
   const porcoLibera = (c, S) => c >= 0 && c !== lv.exit && c !== S.pos && !S.used[c] && !(lv.type[c]) && !porcoBuchi.some(b => b.c === c);
   const porcoDist = (a, b) => Math.abs(a % lv.W - b % lv.W) + Math.abs((a / lv.W | 0) - (b / lv.W | 0));
   const porcoBuco = c => porcoBuchi.some(b => b.c === c && performance.now() < b.fino);
+  function tagliDisegna(S) { if (!S || !S.taglio) return; S.taglio.forEach(([c, d]) => { const x = bx + (c % lv.W) * cs, y = by + ((c / lv.W) | 0) * cs, seg = [[x, y, x + cs, y], [x + cs, y, x + cs, y + cs], [x, y + cs, x + cs, y + cs], [x, y, x, y + cs]][d], [x1, y1, x2, y2] = seg, mx = (x1 + x2) / 2, my = (y1 + y2) / 2, oriz = y1 === y2;
+      ctx.save(); ctx.fillStyle = '#FBF8EF'; if (oriz) ctx.fillRect(x1 + cs * 0.18, y1 - 4, cs * 0.64, 8); else ctx.fillRect(x1 - 4, y1 + cs * 0.18, 8, cs * 0.64);
+      ctx.strokeStyle = '#C8231B'; ctx.lineWidth = 3.5; ctx.setLineDash([5, 4]); ctx.beginPath(); if (oriz) { ctx.moveTo(x1 + cs * 0.18, y1); ctx.lineTo(x1 + cs * 0.82, y1); } else { ctx.moveTo(x1, y1 + cs * 0.18); ctx.lineTo(x1, y1 + cs * 0.82); } ctx.stroke(); ctx.setLineDash([]);
+      if (!sp('forbici', mx + (oriz ? 0 : cs * 0.2), my + (oriz ? -cs * 0.2 : 0), cs * 0.42)) { ctx.font = 'bold ' + Math.round(cs * 0.42) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#C8231B'; ctx.fillText('✂', mx + (oriz ? 0 : cs * 0.2), my + (oriz ? -cs * 0.2 : 0)); } ctx.restore(); }); }   /* il muro tagliato con le forbici */
   function porcoTick(now) {
     if (pi !== porcoPi) { porcoPi = pi; porco = null; porcoBuchi = []; porcoPreso = false; porcoGiro = false; if (porcoCorsa) { clearInterval(porcoCorsa); porcoCorsa = null; } porcoA = now + 7000 + Math.random() * 6000; }
     porcoBuchi = porcoBuchi.filter(b => now < b.fino + 400);
@@ -1594,6 +1605,7 @@ function sticker(t, c, x, y, S, now) { // gli adesivi di Codex; se manca l'immag
       case 'chiave': return sp(KEYSPR[t.id], x, y + (S.got[c] ? 0 : bob), cs * 0.82, S.got[c] ? 0.22 : 1);
       case 'porta': return sp(DOORSPR[t.id], x, y, cs, S.got[c] ? 0.22 : 1);
       case 'pennarello': return sp(PENSPR[t.col], x, y + bob, cs * 0.88);
+      case 'forbici': if (sp('forbici', x, y + (S.got[c] ? 0 : bob), cs * 0.86, S.got[c] ? 0.22 : 1)) return true; ctx.save(); ctx.globalAlpha = S.got[c] ? 0.25 : 1; ctx.font = (cs * 0.62) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#C8231B'; ctx.fillText('✂', x, y + bob); ctx.restore(); return true;   /* secondo anno, gennaio 1982 */
       case 'portacol': return sp(PDOORSPR[t.col], x, y, cs, S.pen === t.col ? 0.3 : 1);
       case 'interruttore': { const on = (S.tog >> t.grp) & 1; return sp('bottone', x, y + (on ? cs * 0.03 : 0), cs * (on ? 0.76 : 0.9), on ? 0.7 : 1); }
       case 'cancello': return sp('cancello', x, y, cs, (t.peso !== undefined ? S.blk[t.peso] : (t.open ^ ((S.tog >> t.grp) & 1))) ? 0.2 : 1);
@@ -1812,6 +1824,7 @@ function draw(now) { if (lv && stack && stack[stack.length - 1] !== ultimoStack)
         else { const k = q < 0.75 ? ease(q / 0.75) : 1 - ease((q - 0.75) / 0.25); ang = 0.5 + 0.45 * k; chiusi = q < 0.8; zzz = q > 0.2 && q < 0.75; } } }
     if (lv.exact > 0 && !lv.riempi) passiDisegna(top(), now);
     if (passoFinto) { const k = (now - passoFinto.t0) / 1500; if (k >= 1) passoFinto = null; else { const u = k < 0.2 ? k / 0.2 : k > 0.75 ? 1 - (k - 0.75) / 0.25 : 1, x0 = cx(passoFinto.a), y0 = cy(passoFinto.a), x1 = x0 + (cx(passoFinto.b) - x0) * u, y1 = y0 + (cy(passoFinto.b) - y0) * u; ctx.save(); ctx.strokeStyle = '#C8231B'; ctx.lineWidth = Math.max(4, cs * 0.12); ctx.lineCap = 'round'; ctx.setLineDash([cs * 0.12, cs * 0.1]); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]); ctx.font = Math.round(cs * 0.42) + 'px "Chewy",cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(String(passoFinto.k), x1 - cs * 0.24, y1 + cs * 0.22); ctx.fillStyle = '#C8231B'; ctx.fillText(String(passoFinto.k), x1 - cs * 0.24, y1 + cs * 0.22); ctx.restore(); } }
+    tagliDisegna(top());
     porcoDisegna(now, tx + ox, ty + oy);
     if (!matitoneOn && now > (parlaMat ? parlaFino : 0)) { const fa = bump ? 'spaventata' : won ? 'contenta' : now < facciaFino ? faccia : numero === 0 ? 'spaventata' : numero === 1 ? 'contenta' : '', im = SPR[fa ? 'matitina-' + fa : 'matitina'] || SPR.matitina;
       const dtg = Math.min(0.1, Math.max(0, (now - giroT) / 1000)); giroT = now; const versoGomma = inCalo && !won && !auto ? 1 : 0; giro += (versoGomma - giro) * Math.min(1, dtg * 13); if (Math.abs(versoGomma - giro) < 0.004) giro = versoGomma;

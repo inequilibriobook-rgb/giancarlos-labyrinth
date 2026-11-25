@@ -2193,6 +2193,8 @@ function draw(now) { if (lv && stack && stack[stack.length - 1] !== ultimoStack)
   $('ing').addEventListener('click', () => { mostraImp(); $('imp').classList.add('show'); }); $('impClose').addEventListener('click', () => $('imp').classList.remove('show')); aggSuoni();
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (!b || b.disabled) return; SFX.pop(); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); setTimeout(() => b.classList.remove('pop'), 360); }); // i tasti scoppiano come bolle
   if (window.ResizeObserver) new ResizeObserver(layout).observe(cv); else window.addEventListener('resize', layout);
+  { let rt = 0; const rifitta = () => { clearTimeout(rt); rt = setTimeout(() => { try { adatta($('title'), fest ? 17 : 19, 10.5); if (!$('sub').classList.contains('dueRighe')) adatta($('sub'), 14.5, 10.5); } catch (e) {} }, 150); };   /* Codex 25/11: se la finestra cambia misura (o il carattere arriva dopo), il titolo si rifà su misura invece di restare coi puntini */
+    window.addEventListener('resize', rifitta); window.addEventListener('orientationchange', rifitta); if (document.fonts && document.fonts.ready) document.fonts.ready.then(rifitta); }
   if (AMICI) $('auto').style.display = 'none';
   { const h = document.querySelector('#mapTop h2'); if (h) h.textContent = 'Anno ' + Y0 + '-' + String(Y0 + 1).slice(2); }   /* il diario dice l'anno giusto */
   { const k = PAGES.findIndex((P, i) => !prog[i]); open(k < 0 ? 0 : k); } requestAnimationFrame(draw); if (!store.get('gl-intro-vista', false)) story(0);

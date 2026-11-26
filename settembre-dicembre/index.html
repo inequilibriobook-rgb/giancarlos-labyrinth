@@ -42,7 +42,7 @@
   .round { border-radius:50%; background:radial-gradient(circle at 32% 28%, #fff 0 14%, #FFE9A8 15% 60%, #FFD45E 100%); }
   @media (prefers-reduced-motion: reduce) { button, button.pop { animation:none; } }
   #note { position:absolute; left:50%; bottom:74px; transform:translate(-50%,20px); width:max-content; max-width:min(92%, 360px); box-sizing:border-box; padding:6px 14px 7px; font-size:18px; line-height:1.15; text-align:center; background:#FFFDF2; border:2px solid #3A3320; border-radius:14px; box-shadow:2px 3px 0 rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; }
-  #note.show { opacity:1; transform:translate(-50%,0); } #note.bad { border-color:var(--red); color:var(--red); }
+  #note.show { opacity:1; transform:translate(-50%,0); } #note.bad { border-color:var(--red); color:var(--red); } #note b.dice { font-family:"Chewy",cursive; font-weight:400; letter-spacing:.3px; margin-right:2px; } #note .d-giancarlo { color:#1A9A3A; } #note .d-igor { color:#1E5FD6; } #note .d-maestro { color:#7A2BC2; } #note .d-simona { color:#D63A86; } #note .d-matita { color:#E07A00; }
   .veil { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(70,55,30,.35); padding:18px; z-index:5; }
   .veil.show { display:flex; }
   .card { width:100%; max-width:340px; background:#FFFDF4; border:2px solid #C9BFA6; border-radius:6px; box-shadow:4px 6px 0 rgba(0,0,0,.2); padding:18px 18px 16px; text-align:center; transform:rotate(-1deg); }
@@ -1307,7 +1307,7 @@ const NOTE_CHI = [[/^Giancarlo: «([^]+)»$/, 'giancarlo', 'entusiasta'], [/^Sim
 ];
 function note(t, bad, ms) { if (t && !opz.calmo) for (const [re, chi, posa] of NOTE_CHI) { const m = re.exec(t); if (!m) continue; const chiesto = chi === 'igor' && posa === 'indica';   /* l'aiuto di Igor l'ha chiesto il giocatore: quello sì, sempre grande */
     if ((chiesto || avvisoGrande(chi + ':' + chiaveAvviso(m[1]))) && dice(chi, posa, m[1], ms)) { const n = $('note'); n.className = ''; return; } break; }
-  const n = $('note'); n.textContent = t; n.className = t ? (bad ? 'show bad' : 'show') : ''; clearTimeout(noteT); if (t) noteT = setTimeout(() => { n.className = ''; }, ms || 3200); }
+  const n = $('note'); scriviNota(n, t, bad); n.className = t ? (bad ? 'show bad' : 'show') : ''; clearTimeout(noteT); if (t) noteT = setTimeout(() => { n.className = ''; }, ms || 3200); }
 
   // --- mosse col dito ---
   function cellAt(e) { const r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left - bx) / cs), y = Math.floor((e.clientY - r.top - by) / cs); return x < 0 || y < 0 || x >= lv.W || y >= lv.H ? -1 : y * lv.W + x; }
@@ -1631,7 +1631,11 @@ let avvFoglio = {}, avvFoglioPi = -1, avvUltimo = -1e9, ultimaPiccola = ['', 0];
 const chiaveAvviso = t => String(t).replace(/\d+/g, '#').slice(0, 40);
 function avvisoGrande(chiave, quante) { if (pi !== avvFoglioPi) { avvFoglioPi = pi; avvFoglio = {}; } const ora = performance.now(); if (avvFoglio[chiave] || ora - avvUltimo < 20000) return false;
   const v = store.get('gl-avvisi-visti', {}); if ((v[chiave] || 0) >= (quante || 2)) return false; avvFoglio[chiave] = 1; avvUltimo = ora; v[chiave] = (v[chiave] || 0) + 1; store.set('gl-avvisi-visti', v); return true; }
-function notaPiccola(t, ms) { const ora = performance.now(); if (ultimaPiccola[0] === t && ora - ultimaPiccola[1] < 4000) return; ultimaPiccola = [t, ora]; const n = $('note'); n.textContent = t; n.className = 'show bad'; clearTimeout(noteT); noteT = setTimeout(() => { n.className = ''; }, ms || 1800); }
+/* Igor 26/11: il fumetto in basso dice sempre CHI parla, col nome colorato: «Giancarlo dice:», «Igor dice:», «Il maestro dice:» (gli errori li dice la matita) */
+function scriviNota(n, t, bad) { if (!t) { n.textContent = ''; return; } const m = /^(Giancarlo|Igor|Simona|Il maestro|Maestro): «([^]*)»$/.exec(t); let chi, testo = t;
+  if (m) { chi = m[1] === 'Maestro' ? 'Il maestro' : m[1]; testo = m[2]; } else { const r = NOTE_CHI.find(([re]) => re.test(t)); chi = r ? { giancarlo: 'Giancarlo', igor: 'Igor', simona: 'Simona', maestro: 'Il maestro' }[r[1]] : bad ? 'La matita' : 'Giancarlo'; }
+  const k = { Giancarlo: 'giancarlo', Igor: 'igor', Simona: 'simona', 'Il maestro': 'maestro', 'La matita': 'matita' }[chi]; n.textContent = ''; const sp = document.createElement('span'), b = document.createElement('b'); sp.className = 'nt'; b.className = 'dice d-' + k; b.textContent = chi + ' dice:'; sp.appendChild(b); sp.appendChild(document.createTextNode(' ' + testo)); n.appendChild(sp); }
+function notaPiccola(t, ms) { const ora = performance.now(); if (ultimaPiccola[0] === t && ora - ultimaPiccola[1] < 4000) return; ultimaPiccola = [t, ora]; const n = $('note'); scriviNota(n, t, true); n.className = 'show bad'; clearTimeout(noteT); noteT = setTimeout(() => { n.className = ''; }, ms || 1800); }
 function avvisa(testo, faccia, cella) { const ora = performance.now(); erroriRecenti = erroriRecenti.filter(t => ora - t < 12000).concat(ora); if (erroriRecenti.length === 3) setTimeout(pulsaSub, 2600); if (ultimoAvviso[0] === testo && ora - ultimoAvviso[1] < 2200) return; ultimoAvviso = [testo, ora];
   if (opz.calmo || !avvisoGrande(chiaveAvviso(testo))) { notaPiccola(testo); return; } matitaParla(null, faccia || 'delusa', 2000, testo, cella); }   /* Igor 23/11 14:36: gli avvisi (risposta sbagliata…) li dice la matitina, 2 secondi, poi torna piccola */
 function matitaParla(img, faccia, ms, testo, cella) { const chi = faccia && faccia[0] === '@'; if (opz.calmo || (!lv && !chi)) return; parlaMat = !chi; parlaVia(true); if (typeof matVia !== 'undefined' && matVia) matitoneTorna();   /* niente matitone della pausa insieme */

@@ -37,6 +37,7 @@
   button.pop { animation:scoppia .34s ease-out; } @keyframes scoppia { 0% { transform:scale(1); } 45% { transform:scale(1.28); opacity:.55; } 60% { transform:scale(.3); opacity:0; } 100% { transform:scale(1); opacity:1; } }
   button:active { background:#DDE8FF; } button:disabled { color:#B9B09A; border-color:#CFC7B2; background:transparent; box-shadow:none; animation:none; }
   button:focus-visible { outline:3px solid var(--yellow); outline-offset:2px; }
+  #next.arrow { border-radius:20px 28px 18px 26px / 26px 18px 28px 20px; } #prev.arrow { border-radius:28px 20px 26px 18px / 18px 26px 20px 28px; }   /* Igor 26/11: le due frecce in alto uguali, disegnate a mano (una lo specchio dell'altra) */
   #bar button { flex:1 1 0; } .arrow { min-width:48px; width:48px; height:48px; padding:0; font-size:19px; border-radius:50%; background:radial-gradient(circle at 32% 28%, #fff 0 14%, #CFE2FF 15% 60%, #A9C7F2 100%); }
   .round { border-radius:50%; background:radial-gradient(circle at 32% 28%, #fff 0 14%, #FFE9A8 15% 60%, #FFD45E 100%); }
   @media (prefers-reduced-motion: reduce) { button, button.pop { animation:none; } }

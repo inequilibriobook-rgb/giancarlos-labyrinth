@@ -1665,7 +1665,7 @@ function note(t, bad, ms) { if (t && !opz.calmo) for (const [re, chi, posa] of N
   // --- disegno ---
   function wob(x1, y1, x2, y2, k) { const mx = (x1 + x2) / 2 + (hash(k) - 0.5) * cs * 0.07, my = (y1 + y2) / 2 + (hash(k + 1) - 0.5) * cs * 0.07; ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, x2, y2); }
   function star(x, y, r) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, q = i % 2 ? r * 0.46 : r; ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * q, y + Math.sin(a) * q); } ctx.closePath(); }
-  function txt(s, x, y, px, col, font) { ctx.fillStyle = col; ctx.font = Math.round(px) + 'px ' + (font || '"Mali","Comic Sans MS",cursive'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y); }
+  function txt(s, x, y, px, col, font) { ctx.fillStyle = col; const f = Math.round(px) + 'px ' + (font || '"Mali","Comic Sans MS",cursive'); if (ctx.__f !== f || ctx.font.indexOf(Math.round(px) + 'px') < 0) { ctx.font = f; ctx.__f = f; } ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y); }   /* il carattere si reimposta solo se cambia (velocità) */
   // SEQUENZE DI FOTOGRAMMI (Igor, 20/11 ore 14:48: «fai creare le immagini in sequenza all'altra IA e tu le animi»): Codex disegna i fotogrammi, il gioco li fa partire SOLO a un evento.
   // File: img/seq-<nome>-01.png, -02.png, … (tela identica, punto d'aggancio al centro). Si caricano finché ci sono. Se una sequenza manca, resta l'effetto di prima.
   const SEQ = {}, SEQFPS = 18, animi = [];
@@ -1846,7 +1846,9 @@ function scritta(txt, img, ms, faccia) { if (faccia && img && SPR[img]) return m
     if ((P.fase === 'esce' || P.fase === 'entra') && SPR['seq-porcospino-esce-04']) { const q = Math.min(1, (now - P.t0) / 520), u = P.fase === 'esce' ? q : 1 - q, im = SPR['seq-porcospino-esce-0' + (1 + Math.min(3, Math.floor(u * 4)))]; ctx.save(); ctx.translate(x, y); if (P.dir < 0) ctx.scale(-1, 1); ctx.drawImage(im, -s / 2, -s / 2, s, s); ctx.restore(); return; }   /* la sequenza di Codex ha già il buco dentro */
     if (P.fase === 'esce' || P.fase === 'entra') { const q = Math.min(1, (now - P.t0) / 520), u = P.fase === 'esce' ? q : 1 - q; alza = (u - 1) * s * 0.75; clip = true; k = 0; }
     ctx.save(); if (clip) { ctx.beginPath(); ctx.rect(x - s, y - s * 1.5, s * 2, s * 1.5 + cs * 0.16); ctx.clip(); } porcoSprite(x, y, s, P.dir, k, -alza); ctx.restore(); }
-  function sp(n, x, y, s, a, rot) { const im = SPR[n]; if (!im) return false; ctx.save(); if (a !== undefined) ctx.globalAlpha = a; ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.drawImage(im, -s / 2, -s / 2, s, s); ctx.restore(); return true; }
+  /* VELOCITÀ (27/11): i disegni grandi (512 px) rimpiccioliti ogni volta a 50 px costavano tanto. Ora si rimpiccioliscono UNA volta, alla misura giusta, e poi si copiano */
+  const SCALA = new Map(); function scalato(im, n, px) { const b = Math.max(8, Math.ceil(px / 4) * 4); if (!im.width || im.width <= b * 1.3) return im; const k = n + '|' + b; let c = SCALA.get(k); if (c) return c; if (SCALA.size > 700) SCALA.clear(); c = document.createElement('canvas'); c.width = c.height = b; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(im, 0, 0, b, b); SCALA.set(k, c); return c; }
+  function sp(n, x, y, s, a, rot) { const im = SPR[n]; if (!im) return false; ctx.save(); if (a !== undefined) ctx.globalAlpha = a; ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.drawImage(scalato(im, n, s * dpr), -s / 2, -s / 2, s, s); ctx.restore(); return true; }
   let passoFinto = null, coordT = {}, lampi = [], sbagliArc = store.get('gl-sbagli-arc', {});
 /* PASSI CONTATI (Igor 23/11): a ogni passo due impronte che svaniscono; sul quadretto resta solo il numero dell'ultimo passo, il precedente «evapora» */
 let passiUlt = { t: -1, c: -1, t0: 0, ang: 0 }, passiPrec = null;

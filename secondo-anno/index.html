@@ -1483,7 +1483,7 @@ function note(t, bad, ms) { if (t && !opz.calmo) for (const [re, chi, posa] of N
   function igor() { if (igorDetto || won || auto || veli()) return; igorDetto = true; const S = top(), via = daQui(S); let cella, msg;
     if (via) { cella = via[S.path.length]; msg = 'Igor: «Ti aiuto io! Da ' + name(lv, S.pos) + ' vai in ' + name(lv, cella) + '»'; }
     else { let b = stack.length - 2; while (b > 0 && !daQui(stack[b])) b--; cella = stack[Math.max(0, b)].pos; msg = 'Igor: «Occhio: da qui non si esce. Torna fino a ' + name(lv, cella) + '»'; }
-    hintCell = cella; coordUntil = performance.now() + 6000; note(msg, false, 6000); mostraIgor(via ? 'indica' : 'preoccupato'); SFX.regalo(); }
+    hintCell = cella; scrMostra(cella); coordUntil = performance.now() + 6000; note(msg, false, 6000); mostraIgor(via ? 'indica' : 'preoccupato'); SFX.regalo(); }
   function contaCanc() { const n = stack.length; if (n !== lungPrima) mossaT = performance.now(); if (n < lungPrima) { if (n === 1 && !parte) { canc = 0; drawn = 0; hinted = false; abbaiato = false; abbaiN = 0; sbagli = {}; ultimoHint = ''; t0 = 0; inCalo = false; } else if (!inCalo) { canc++; inCalo = true; } /* l'aiuto gratis di Igor alla terza cancellatura è stato tolto: troppi aiuti (Igor, 20/11) */ } else if (n > lungPrima) inCalo = false; lungPrima = n; }
   const veli = () => ['card', 'help', 'intro', 'sum', 'win', 'map', 'imp', 'dona', 'pers', 'pag', 'ades', 'album', 'cart', 'pagellino'].some(k => $(k).classList.contains('show'));
   function fermaAuto(msg) { if (auto) { clearInterval(auto); auto = null; } $('auto').textContent = '▶'; if (msg) note(msg, false, 5000); hud(); }
@@ -1514,6 +1514,7 @@ function note(t, bad, ms) { if (t && !opz.calmo) for (const [re, chi, posa] of N
     const fai = avanti => { let x = avanti ? x1 - R : x0 + R; const y = y1 + R + 10; if (qui && Math.abs(cx(lv.exit) - x) < R + 36) x = avanti ? x - R * 2.6 : x + R * 2.6; out.push({ x, y, R, freccia: oriz ? (avanti ? '▶' : '◀') : (avanti ? '▼' : '▲'), vai: oriz ? [schm.tx + (avanti ? 1 : -1), schm.ty] : [schm.tx, schm.ty + (avanti ? 1 : -1)] }); };
     if (k > 0) fai(false); if (k < n - 1) fai(true); return out; }   /* con 3 schermate, in quella di mezzo ci sono tutte e due le frecce */
   const scrTasto = () => scrTasti()[0] || null;
+  function scrMostra(c) { if (!schm || c < 0) return; const [a, b] = scrDi(c); if (a !== schm.tx || b !== schm.ty) { schm.tx = a; schm.ty = b; const [pa, pb] = scrDi(top().pos); schm.guarda = pa !== a || pb !== b; hud(); } }   /* il consiglio di Igor su un'altra schermata: la mostra (27/11) */
   function scrClip() { if (!schm) return; const m = cs * 0.42, x0 = schm.bx0, y0 = schm.by0, x1 = x0 + schm.vw * cs, y1 = y0 + schm.vh * cs, L = schm.tx > 0 || schm.x > 0.01 ? x0 - m : 0, R = schm.tx < schm.c - 1 || schm.x < schm.c - 1.01 ? x1 + m : W, T = schm.ty > 0 || schm.y > 0.01 ? y0 - m : 0, B = schm.ty < schm.r - 1 || schm.y < schm.r - 1.01 ? y1 + m : H;
     ctx.save(); ctx.beginPath(); ctx.rect(L, T, R - L, B - T); ctx.clip(); }
   function scrCuciture(now) { if (!schm) return; ctx.save(); ctx.strokeStyle = 'rgba(229,51,42,.45)'; ctx.lineWidth = 2; ctx.setLineDash([cs * 0.14, cs * 0.12]); ctx.beginPath();
@@ -1658,7 +1659,7 @@ function note(t, bad, ms) { if (t && !opz.calmo) for (const [re, chi, posa] of N
     if (msg) { /* già deciso: domenica, la linea perfetta da qui non c'è più */ } else if (via) { cella = via[S.path.length]; chiave = 'a' + S.pos + '>' + cella; msg = 'Igor: «Da ' + name(lv, S.pos) + ' vai in ' + name(lv, cella) + '»'; }
     else { let b = stack.length - 2; while (b > 0 && !daQui(stack[b])) b--; cella = PAGES[pi].penna ? lv.start : stack[Math.max(0, b)].pos; chiave = 'i' + cella; msg = PAGES[pi].penna ? 'Igor: «Da qui non si esce. Ricomincia.»' : 'Igor: «Da qui non si esce. Torna indietro fino a ' + name(lv, cella) + '»'; }
     if (chiave !== ultimoHint) { if (restanti() < 1) { note('Aiuti finiti per questo mese', true, 3500); SFX.no(); return; } usati[meseDi(pi)] = (usati[meseDi(pi)] || 0) + 1; store.set(K('gl-aiuti-usati'), usati); igorF++; ultimoHint = chiave; $('nc').textContent = restanti(); { const b = $('nc'); b.classList.remove('zoom'); void b.offsetWidth; b.classList.add('zoom'); setTimeout(() => b.classList.remove('zoom'), 520); } }
-    hinted = true; coordUntil = performance.now() + 6000; hintCell = cella;
+    hinted = true; coordUntil = performance.now() + 6000; hintCell = cella; scrMostra(cella);
     note(msg, false, 6000); mostraIgor(via ? 'indica' : 'preoccupato');
   }
 
